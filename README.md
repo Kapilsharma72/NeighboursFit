@@ -20,7 +20,7 @@ This project has two main parts:
    server running on port http://localhost:3003
 
 ## 🚀 Before running the server add API in .env 
-GOOGLE_API_KEY= Enter your API Key 
+GOOGLE_API_KEY= Enter your API Key '/n'
 Recommend : https://console.cloud.google.com/
 
 
