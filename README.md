@@ -19,6 +19,12 @@ This project has two main parts:
    npm start
    server running on port http://localhost:3003
 
+## 🚀 Before running the server add API in .env 
+ GOOGLE_API_KEY= Enter your API Key 
+ Recommend : https://console.cloud.google.com/
+
+
+
 ## 🚀 How to Run the Frontend
 
 1. Open your terminal and navigate to the `frontend` directory:
@@ -27,4 +33,3 @@ This project has two main parts:
    npm install
    npm start
    server running on port http://localhost:3003
-
