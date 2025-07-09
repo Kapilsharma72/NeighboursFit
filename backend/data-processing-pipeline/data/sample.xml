@@ -1,0 +1,12 @@
+<neighborhoods>
+  <neighborhood>
+    <name>Sector 10</name>
+    <schools>3</schools>
+    <hospitals>1</hospitals>
+    <gyms>2</gyms>
+    <parks>2</parks>
+    <traffic>high</traffic>
+    <lat>26.86</lat>
+    <lng>75.81</lng>
+  </neighborhood>
+</neighborhoods>

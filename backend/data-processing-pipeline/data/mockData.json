@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Sector 8, Pratap Nagar, Jaipur",
+    "schools": 5,
+    "hospitals": 3,
+    "gyms": 2,
+    "parks": 4,
+    "traffic": "low",
+    "lat": 26.8500,
+    "lng": 75.8000
+  }
+]
