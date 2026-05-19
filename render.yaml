@@ -1,0 +1,21 @@
+services:
+  # Backend API — deployed on Render as a Web Service
+  - type: web
+    name: neighboursfit-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: GOOGLE_API_KEY
+        sync: false        # Set this manually in Render dashboard
+      - key: ALLOWED_ORIGIN
+        sync: false        # Set to your Vercel frontend URL e.g. https://neighboursfit.vercel.app
+      - key: MONGODB_URI
+        sync: false        # Set this manually in Render dashboard
+    healthCheckPath: /health
+    autoDeploy: true
