@@ -176,44 +176,73 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // Geocode the location to get lat/lng
-    const geoRes = await axios.get(`https://maps.googleapis.com/maps/api/geocode/json`, {
-      params: {
-        address: location,
-        key: GOOGLE_API_KEY
-      }
-    });
+    // 1. Guard: skip geocoding entirely if API key is absent
+    let cityLatLng = null;
 
-    const cityLatLng = geoRes.data.results[0]?.geometry.location;
-    if (!cityLatLng) {
-      return res.status(404).json({ error: 'City not found' });
+    if (!GOOGLE_API_KEY) {
+      console.log('GOOGLE_API_KEY is not set — skipping geocoding, using city-name filter fallback');
+    } else {
+      // 2. Wrap geocoding call in its own try/catch
+      try {
+        const geoRes = await axios.get(`https://maps.googleapis.com/maps/api/geocode/json`, {
+          params: {
+            address: location,
+            key: GOOGLE_API_KEY
+          }
+        });
+
+        // 3. Check status before reading results[0]
+        if (geoRes.data.status === 'OK') {
+          cityLatLng = geoRes.data.results[0]?.geometry.location || null;
+        } else {
+          console.log(`Geocoding returned non-OK status: ${geoRes.data.status} — falling back to city-name filter`);
+          cityLatLng = null;
+        }
+      } catch (geoError) {
+        console.error('Geocoding call failed:', geoError.message);
+        cityLatLng = null;
+      }
     }
 
-    // Filter locations by city and radius BEFORE scoring
+    // 4. Filter locations by city unconditionally (regardless of geocoding outcome)
     const filteredLocations = filterLocationsByCity(mockData, location, rangeKm);
-    
+
+    // 4. Empty-results check runs unconditionally too
     if (filteredLocations.length === 0) {
-      return res.status(404).json({ 
-        error: `No locations found in ${location} within ${rangeKm}km radius`,
+      const supportedCities = [
+        'Mumbai', 'Delhi', 'Bangalore / Bengaluru', 'Hyderabad', 'Pune',
+        'Chennai', 'Kolkata', 'Ahmedabad', 'Jaipur', 'Lucknow',
+        'Indore', 'Kochi', 'Chandigarh / Mohali / Panchkula',
+        'Amritsar', 'Ludhiana', 'Jalandhar', 'Surat', 'Nagpur',
+        'Bhopal', 'Visakhapatnam / Vizag'
+      ];
+      return res.status(404).json({
+        error: `No neighborhoods found for "${location}". We currently have data for the following cities.`,
+        suggestion: 'Please try one of the supported cities listed below.',
+        supportedCities,
         searchLocation: location,
         searchRadius: rangeKm
       });
     }
 
+    const radiusInMeters = rangeKm * 1000;
+
     // Get Google amenity counts for user's preferred amenities
     const amenityScores = {};
     const amenityTypes = Object.keys(userPrefs.preferences || {});
-    const radiusInMeters = rangeKm * 1000;
 
-    // Only fetch amenities that user actually wants (checked = true)
-    for (const type of amenityTypes) {
-      if (userPrefs.preferences[type] === true) {
-        try {
-          const count = await fetchNearbyPlacesCount(type, cityLatLng, radiusInMeters);
-          amenityScores[type] = count;
-        } catch (error) {
-          console.error(`Error fetching ${type} amenities:`, error.message);
-          amenityScores[type] = 0;
+    // 5. Skip amenity enrichment loop when cityLatLng is null
+    if (cityLatLng) {
+      // Only fetch amenities that user actually wants (checked = true)
+      for (const type of amenityTypes) {
+        if (userPrefs.preferences[type] === true) {
+          try {
+            const count = await fetchNearbyPlacesCount(type, cityLatLng, radiusInMeters);
+            amenityScores[type] = count;
+          } catch (error) {
+            console.error(`Error fetching ${type} amenities:`, error.message);
+            amenityScores[type] = 0;
+          }
         }
       }
     }
@@ -225,7 +254,6 @@ router.post('/', async (req, res) => {
         ...area, 
         score, 
         reasons,
-        // Add some mock amenity data for display if Google API fails
         nearbyAmenities: amenityScores
       };
     });
@@ -234,7 +262,7 @@ router.post('/', async (req, res) => {
     scoredAreas.sort((a, b) => b.score - a.score);
     const topMatches = scoredAreas.slice(0, 5);
 
-    // --- NEW: Attach detailed places data to each top match ---
+    // --- Attach detailed places data to each top match ---
     // Categories to search for (same as in search.js)
     const CATEGORIES = [
       { type: 'school', label: 'schools' },
@@ -283,26 +311,36 @@ router.post('/', async (req, res) => {
       return R * 2 * Math.asin(Math.sqrt(a));
     }
 
-    // Attach places to each top match (serially to avoid API quota issues)
-    for (const match of topMatches) {
-      match.places = {};
-      for (const { type, label } of CATEGORIES) {
-        // Use match.lat and match.lng (not latitude/longitude)
-        match.places[label] = await fetchPlacesForCategory(type, match.lat, match.lng, radiusInMeters);
+    // 5. Skip places-enrichment loop when cityLatLng is null
+    if (cityLatLng) {
+      // Attach places to each top match (serially to avoid API quota issues)
+      for (const match of topMatches) {
+        match.places = {};
+        for (const { type, label } of CATEGORIES) {
+          match.places[label] = await fetchPlacesForCategory(type, match.lat, match.lng, radiusInMeters);
+        }
       }
     }
-    // --- END NEW ---
 
-    res.json({
-      center: cityLatLng,
+    // 6. Build response — include geocodingUnavailable flag and omit center when fallback was used
+    const responseBody = {
       topMatches,
       searchLocation: location,
       searchRadius: rangeKm,
       totalAreasEvaluated: filteredLocations.length,
       totalAreasAvailable: mockData.length,
       locationFilterApplied: true
-    });
+    };
+
+    if (cityLatLng) {
+      responseBody.center = cityLatLng;
+    } else {
+      responseBody.geocodingUnavailable = true;
+    }
+
+    res.json(responseBody);
   } catch (error) {
+    // 7. Last-resort handler — returns HTTP 500
     console.error('Error in /combined:', error.message);
     res.status(500).json({ error: 'Internal server error' });
   }

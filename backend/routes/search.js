@@ -6,10 +6,6 @@ const router = express.Router();
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 
-if (!GOOGLE_API_KEY) {
-  throw new Error('Google API key is missing. Set GOOGLE_API_KEY in your environment.');
-}
-
 // Categories to search for
 const CATEGORIES = [
   { type: 'school', label: 'schools' },
@@ -37,6 +33,10 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
 }
 
 router.post('/', async (req, res) => {
+  if (!GOOGLE_API_KEY) {
+    return res.status(503).json({ error: 'Google API key is not configured' });
+  }
+
   const { address, radius = 10000 } = req.body;
 
   if (!address) {

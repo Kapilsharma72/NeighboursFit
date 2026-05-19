@@ -11,6 +11,7 @@ const UserPreferenceForm = () => {
   const [error, setError] = useState(null);
   const [step5Completed, setStep5Completed] = useState(false);
   const [selectedCount, setSelectedCount] = useState(0);
+  const [supportedCities, setSupportedCities] = useState([]);
   const [formData, setFormData] = useState({
     location: '',
     rangeKm: 10,
@@ -195,14 +196,20 @@ const UserPreferenceForm = () => {
     setLoading(true);
     setError(null);
     setResults(null);
+    setSupportedCities([]);
     
     try {
       console.log('Making API call with form data:', formData);
-      const response = await axios.post('/combined', formData);
+      const API_BASE = process.env.REACT_APP_API_URL || '';
+      const response = await axios.post(`${API_BASE}/combined`, formData);
       setResults(response.data);
       console.log("API Response:", response.data);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to fetch matches. Please try again.');
+      const errData = err.response?.data;
+      setError(errData?.error || 'Failed to fetch matches. Please try again.');
+      if (errData?.supportedCities) {
+        setSupportedCities(errData.supportedCities);
+      }
       console.error("API Error:", err);
     } finally {
       setLoading(false);
@@ -230,7 +237,7 @@ const UserPreferenceForm = () => {
     setError(null);
     
     if (step === 4) {
-      setStep5Completed(false);
+      setStep5Completed(true);
     }
     
     setStep(prev => prev + 1);
@@ -244,6 +251,7 @@ const UserPreferenceForm = () => {
     setError(null);
     setStep5Completed(false);
     setSelectedCount(0);
+    setSupportedCities([]);
     setFormData({
       location: '',
       rangeKm: 10,
@@ -914,23 +922,22 @@ const UserPreferenceForm = () => {
                   </button>
                 ) : step === 5 ? (
                   <div className="flex items-center space-x-6 ml-auto">
-                    {step5Completed ? (
-                      <button
-                        type="submit"
-                        className="step1-find-btn"
-                      >
-                        <span className="find-icon">🔍</span> Find the Matching
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled
-                        className="px-10 py-4 bg-gray-300 text-gray-500 rounded-2xl font-bold cursor-not-allowed shadow-lg"
-                        whileHover={{ scale: 1.02 }}
-                      >
-                        Complete Profile First
-                      </button>
-                    )}
+                    <button
+                      type="submit"
+                      disabled={loading || !step5Completed}
+                      className="step1-find-btn"
+                    >
+                      {loading ? (
+                        <>
+                          <span className="loading-spinner" />
+                          <span>Finding matches...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="find-icon">🔍</span> Find the Matching
+                        </>
+                      )}
+                    </button>
                   </div>
                 ) : <div className="invisible" />}
               </div>
@@ -943,19 +950,42 @@ const UserPreferenceForm = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-8 p-6 bg-red-50 border-2 border-red-200 rounded-2xl shadow-lg"
               >
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
                     <span className="text-white font-bold">!</span>
                   </div>
                   <p className="text-red-700 font-bold text-lg">{error}</p>
                 </div>
+                {supportedCities.length > 0 && (
+                  <div className="mt-4 p-4 bg-white rounded-xl border border-red-100">
+                    <p className="text-gray-700 font-semibold mb-3">🏙️ Currently supported cities:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {supportedCities.map((city, i) => (
+                        <span
+                          key={i}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium cursor-pointer hover:bg-blue-200 transition-colors"
+                          onClick={() => {
+                            const firstCity = city.split(' / ')[0].split(' (')[0];
+                            setFormData(prev => ({ ...prev, location: firstCity }));
+                            setError(null);
+                            setSupportedCities([]);
+                            setStep(1);
+                          }}
+                        >
+                          {city}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-gray-500 text-sm mt-3">💡 Click a city to use it, or go back to Step 1 and type a supported city.</p>
+                  </div>
+                )}
               </motion.div>
             )}
           </div>
         </motion.div>
 
         {/* Enhanced Results Display */}
-        {results && step === 5 && !loading && (
+        {results && !loading && (
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}

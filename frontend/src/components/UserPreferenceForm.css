@@ -2,12 +2,6 @@
    USER PREFERENCE FORM COMPONENT STYLES
    ======================================== */
 
-/* CSS is loaded successfully */
-.user-preference-form {
-  /* Component styles are working */
-  border: 2px solid #00ff00 !important;
-}
-
 /* Form Container */
 .user-preference-form {
   min-height: 100vh !important;

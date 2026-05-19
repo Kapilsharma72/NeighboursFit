@@ -25,20 +25,49 @@ function filterLocationsByCity(locations, searchCity, searchRadius = 20) {
       return true;
     }
     
+    // Special case: if searching "punjab", match all Punjab city locations
+    if (searchCityLower === 'punjab') {
+      const punjabCities = ['amritsar', 'ludhiana', 'jalandhar', 'patiala', 'bathinda', 'mohali', 'chandigarh'];
+      return punjabCities.some(city => locationName.includes(city));
+    }
+
     // Check for common city variations with more precise matching
     const cityVariations = {
-      'mumbai': ['mumbai', 'bombay', 'navi mumbai', 'thane', 'kalyan', 'virar', 'vasai'],
+      'mumbai': ['mumbai', 'bombay', 'navi mumbai', 'thane', 'kalyan', 'virar', 'vasai', 'andheri'],
       'delhi': ['delhi', 'new delhi', 'noida', 'gurgaon', 'faridabad', 'ghaziabad'],
-      'bangalore': ['bangalore', 'bengaluru', 'whitefield', 'koramangala', 'indiranagar'],
-      'pune': ['pune', 'pimpri', 'chinchwad', 'hinjewadi'],
-      'hyderabad': ['hyderabad', 'secunderabad', 'gachibowli', 'hitech city'],
-      'chennai': ['chennai', 'madras', 'omr', 'ecr'],
-      'kolkata': ['kolkata', 'calcutta', 'salt lake', 'new town'],
-      'ahmedabad': ['ahmedabad', 'gandhinagar'],
-      'jaipur': ['jaipur', 'malviya nagar, jaipur', 'vaishali nagar, jaipur', 'c-scheme, jaipur'],
-      'lucknow': ['lucknow', 'gomti nagar, lucknow', 'hazratganj, lucknow']
+      // Support both spellings: users may type "bangalore" or "bengaluru"
+      'bangalore': ['bangalore', 'bengaluru', 'whitefield', 'koramangala', 'indiranagar', 'hsr layout', 'jayanagar', 'marathahalli'],
+      'bengaluru': ['bengaluru', 'bangalore', 'whitefield', 'koramangala', 'indiranagar', 'hsr layout', 'jayanagar', 'marathahalli'],
+      'pune': ['pune', 'pimpri', 'chinchwad', 'hinjewadi', 'kothrud', 'baner', 'aundh', 'wakad', 'viman nagar'],
+      'hyderabad': ['hyderabad', 'secunderabad', 'gachibowli', 'hitech city', 'jubilee hills', 'banjara hills', 'kukatpally', 'miyapur', 'begumpet'],
+      'chennai': ['chennai', 'madras', 'omr', 'ecr', 't. nagar', 'velachery', 'adyar', 'anna nagar', 'tambaram'],
+      'kolkata': ['kolkata', 'calcutta', 'salt lake', 'new town', 'garia', 'howrah', 'behala', 'park street'],
+      'ahmedabad': ['ahmedabad', 'gandhinagar', 'navrangpura', 'maninagar', 'thaltej', 'bopal', 'satellite', 'gota'],
+      'jaipur': ['jaipur', 'malviya nagar, jaipur', 'vaishali nagar, jaipur', 'c-scheme, jaipur', 'mansarovar', 'jagatpura', 'tonk road'],
+      'lucknow': ['lucknow', 'gomti nagar, lucknow', 'hazratganj, lucknow', 'indira nagar, lucknow', 'aliganj', 'rajajipuram', 'aminabad'],
+      'indore': ['indore', 'vijay nagar', 'palasia', 'rau', 'bhawarkua', 'mg road'],
+      'kochi': ['kochi', 'cochin', 'edappally', 'kakkanad', 'panampilly nagar', 'aluva', 'fort kochi', 'vyttila'],
+      // Additional cities for completeness — entries may be added to mockLocations.json in the future
+      'surat': ['surat', 'adajan', 'vesu', 'athwa', 'katargam', 'varachha'],
+      'nagpur': ['nagpur', 'dharampeth', 'sitabuldi', 'sadar', 'manish nagar', 'wardha road'],
+      'chandigarh': ['chandigarh', 'sector 17', 'sector 22', 'mohali', 'panchkula', 'manimajra'],
+      'bhopal': ['bhopal', 'mp nagar', 'arera colony', 'kolar road', 'habibganj', 'new market'],
+      'visakhapatnam': ['visakhapatnam', 'vizag', 'gajuwaka', 'mvp colony', 'rushikonda', 'madhurawada'],
+      'vizag': ['vizag', 'visakhapatnam', 'gajuwaka', 'mvp colony', 'rushikonda', 'madhurawada'],
+      // Punjab — each city maps only to its own areas
+      'amritsar': ['amritsar', 'ranjit avenue, amritsar', 'lawrence road, amritsar', 'green avenue, amritsar'],
+      'ludhiana': ['ludhiana', 'model town, ludhiana', 'sarabha nagar, ludhiana', 'brs nagar, ludhiana'],
+      'jalandhar': ['jalandhar', 'model town, jalandhar', 'guru nanak pura, jalandhar', 'lajpat nagar, jalandhar'],
+      'patiala': ['patiala', 'urban estate, patiala', 'model town, patiala'],
+      'chandigarh': ['chandigarh', 'sector 17, chandigarh', 'sector 22, chandigarh', 'mohali, chandigarh', 'panchkula, chandigarh', 'manimajra'],
+      'mohali': ['mohali, chandigarh', 'mohali'],
+      'panchkula': ['panchkula, chandigarh', 'panchkula'],
+      // Additional cities
+      'surat': ['surat', 'adajan, surat', 'vesu, surat', 'athwa, surat', 'katargam, surat', 'varachha, surat'],
+      'nagpur': ['nagpur', 'dharampeth, nagpur', 'sitabuldi, nagpur', 'sadar, nagpur', 'wardha road, nagpur'],
+      'bhopal': ['bhopal', 'mp nagar, bhopal', 'arera colony, bhopal', 'habibganj, bhopal', 'kolar road, bhopal']
     };
-    
+
     // More precise matching - check if the search city has variations
     for (const [city, variations] of Object.entries(cityVariations)) {
       if (city === searchCityLower || variations.includes(searchCityLower)) {
